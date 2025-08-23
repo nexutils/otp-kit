@@ -1,0 +1,57 @@
+{
+  "name": "otp-kit",
+  "version": "1.0.0",
+  "description": "A Lightweight OTP Generation and Verification Library for Node.js & TypeScript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "keywords": [
+    "otp",
+    "one time password",
+    "otp generation",
+    "otp verification",
+    "nodejs otp",
+    "typescript otp",
+    "secure otp",
+    "2fa",
+    "two factor authentication",
+    "passwordless authentication",
+    "totp",
+    "hotp",
+    "time based otp",
+    "counter based otp",
+    "authentication",
+    "auth library",
+    "node otp library"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "prepare": "npm run build",
+    "test": "jest --passWithNoTests"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vishnusatheeshpulickal/otp-kit.git"
+  },
+  "author": "Vishnu Satheesh",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vishnusatheeshpulickal/otp-kit/issues"
+  },
+  "homepage": "https://github.com/vishnusatheeshpulickal/otp-kit#readme"
+}
