@@ -3,10 +3,30 @@ export interface OtpAlgorithm {
   verify(input: string, secret?: string, opts?: any): boolean | number;
 }
 
-export interface RandomOtpOptions {
+export type Charset =
+  | "numeric"   
+  | "alphabetic"  
+  | "alphanumeric" 
+  | "hex"
+  | "custom"; 
+
+
+
+export interface RandomOtpOptionsBase {
   length?: number;
-  digits?: boolean;
-  lowerCaseAlphabets?: boolean;
-  upperCaseAlphabets?: boolean;
-  specialChars?: boolean;
+  charset?: Charset;
+  customCharset?: string; 
 }
+
+
+interface RandomOtpOptionsWithCustom extends RandomOtpOptionsBase {
+  charset: "custom";
+  customCharset: string;
+}
+
+interface RandomOtpOptionsWithoutCustom extends RandomOtpOptionsBase {
+  charset: Exclude<Charset, "custom">;
+  customCharset?: never;
+}
+
+export type RandomOtpOptions = RandomOtpOptionsWithCustom | RandomOtpOptionsWithoutCustom;
