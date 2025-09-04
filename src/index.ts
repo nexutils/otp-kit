@@ -1,8 +1,3 @@
-import { RandomOtpAlgorithm } from "./algorithms/random.algorithm";
 
+export { default as OtpKit } from "./factories/otpkit";
 
-const otpGenerator = new RandomOtpAlgorithm({length:4,charset:'numeric'});
-
-const otp = otpGenerator.generate();
-
-console.log("otp gen", otp);
