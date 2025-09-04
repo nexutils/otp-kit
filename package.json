@@ -1,6 +1,6 @@
 {
   "name": "otp-kit",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A Lightweight OTP Generation and Verification Library for Node.js & TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
