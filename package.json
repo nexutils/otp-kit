@@ -1,6 +1,6 @@
 {
   "name": "otp-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Lightweight OTP Generation and Verification Library for Node.js & TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -32,7 +32,8 @@
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "prepare": "npm run build",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+     "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=16"
@@ -46,14 +47,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vishnusatheeshpulickal/otp-kit.git"
+    "url": "git+https://github.com/nexutils/otp-kit"
   },
   "author": "Vishnu Satheesh",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/vishnusatheeshpulickal/otp-kit/issues"
+    "url": "https://github.com/nexutils/otp-kit/issues"
   },
-  "homepage": "https://github.com/vishnusatheeshpulickal/otp-kit#readme",
+  "homepage": "https://github.com/nexutils/otp-kit",
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^24.3.0",

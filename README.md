@@ -61,11 +61,11 @@ console.log("Is OTP valid?", isValid);
 
 ✅ Example with **custom charset**:
 ```ts
-const otpGenerator = new RandomOtpAlgorithm({
+const otpGenerator = OtpKit.create("random", {
   length: 5,
   charset: "custom",
   customCharset: "ABCDE"
-});
+  });
 console.log(otpGenerator.generate()); // Example output: BCAAD
 
 ```
