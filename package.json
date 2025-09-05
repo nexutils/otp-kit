@@ -1,9 +1,9 @@
 {
   "name": "otp-kit",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A Lightweight OTP Generation and Verification Library for Node.js & TypeScript",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "keywords": [
     "otp",
     "one time password",
@@ -40,14 +40,14 @@
   },
   "exports": {
     ".": {
+      "require": "./dist/index.js",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
     }
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nexutils/otp-kit"
+    "url": "git+https://github.com/nexutils/otp-kit.git"
   },
   "author": "Vishnu Satheesh",
   "license": "MIT",
