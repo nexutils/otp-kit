@@ -1,6 +1,6 @@
 {
   "name": "otp-kit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A Lightweight OTP Generation and Verification Library for Node.js & TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -33,7 +33,7 @@
     "clean": "rm -rf dist",
     "prepare": "npm run build",
     "test": "jest --passWithNoTests",
-     "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=16"
