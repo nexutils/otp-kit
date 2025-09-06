@@ -3,6 +3,10 @@
 A lightweight and extensible library for generating and verifying One-Time Passwords (OTPs).  
 Supports **random OTPs** (numeric, alphanumeric, custom charset), with planned support for **TOTP** and **HOTP**.
 
+[![npm version](https://img.shields.io/npm/v/otp-kit)](https://www.npmjs.com/package/otp-kit)
+[![npm downloads](https://img.shields.io/npm/dm/otp-kit)](https://www.npmjs.com/package/otp-kit)
+[![license](https://img.shields.io/npm/l/otp-kit)](./LICENSE)
+
 ---
 
 ## ✨ Features
