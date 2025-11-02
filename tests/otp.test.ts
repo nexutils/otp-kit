@@ -1,6 +1,5 @@
 import OtpKit from "../src/factories/otpkit";
 import { HotpOtpAlgorithm, OtpError } from "../src/algorithms/hotp.algorithm";
-import { HashAlgorithm } from "../src/algorithms/base.algorithm";
 
 describe("RandomOtpAlgorithm", () => {
   describe("Valid OTP Generation", () => {
@@ -142,7 +141,7 @@ describe("HotpOtpAlgorithm", () => {
         secret,
         counter: 0,
         digits: 6,
-        algorithm: HashAlgorithm.SHA1,
+        algorithm: "SHA-1",
       });
       const otp = hotp.generate(undefined, 0);
       expect(otp).toBe("755224");
@@ -154,7 +153,7 @@ describe("HotpOtpAlgorithm", () => {
         secret,
         counter: 1,
         digits: 6,
-        algorithm: HashAlgorithm.SHA1,
+        algorithm: "SHA-1",
       });
       const otp = hotp.generate(undefined, 1);
       expect(otp).toBe("287082");

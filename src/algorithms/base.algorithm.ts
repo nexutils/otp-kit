@@ -7,11 +7,7 @@ export interface OtpAlgorithm<ResultType = boolean | number> {
 
 // ==================== HASH ENUM ====================
 
-export enum HashAlgorithm {
-  SHA1 = "SHA-1",
-  SHA256 = "SHA-256",
-  SHA512 = "SHA-512",
-}
+export type HashAlgorithm = "SHA-1" | "SHA-256" | "SHA-512";
 
 // ==================== CHARSET TYPES ====================
 
