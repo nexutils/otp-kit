@@ -1,32 +1,52 @@
-export interface OtpAlgorithm {
+// ==================== OTP CORE INTERFACE ====================
+
+export interface OtpAlgorithm<ResultType = boolean | number> {
   generate(secret?: string, movingFactor?: number | bigint): string;
-  verify(input: string, secret?: string, opts?: any): boolean | number;
+  verify(input: string, secret?: string, opts?: Record<string, unknown>): ResultType;
 }
 
-export type Charset =
-  | "numeric"   
-  | "alphabetic"  
-  | "alphanumeric" 
-  | "hex"
-  | "custom"; 
+// ==================== HASH ENUM ====================
 
+export enum HashAlgorithm {
+  SHA1 = "SHA-1",
+  SHA256 = "SHA-256",
+  SHA512 = "SHA-512",
+}
 
+// ==================== CHARSET TYPES ====================
+
+export type Charset = "numeric" | "alphabetic" | "alphanumeric" | "hex" | "custom";
 
 export interface RandomOtpOptionsBase {
-  length?: number;
-  charset?: Charset;
-  customCharset?: string; 
+  readonly length?: number;
+  readonly charset?: Charset;
+  readonly customCharset?: string;
 }
 
-
-interface RandomOtpOptionsWithCustom extends RandomOtpOptionsBase {
-  charset: "custom";
-  customCharset: string;
+export interface RandomOtpOptionsWithCustom extends RandomOtpOptionsBase {
+  readonly charset: "custom";
+  readonly customCharset: string;
 }
 
-interface RandomOtpOptionsWithoutCustom extends RandomOtpOptionsBase {
-  charset: Exclude<Charset, "custom">;
-  customCharset?: never;
+export interface RandomOtpOptionsWithoutCustom extends RandomOtpOptionsBase {
+  readonly charset?: Exclude<Charset, "custom">;
+  readonly customCharset?: never;
 }
 
 export type RandomOtpOptions = RandomOtpOptionsWithCustom | RandomOtpOptionsWithoutCustom;
+
+// ==================== HOTP OPTIONS ====================
+
+export interface HotpOptions {
+  readonly secret: string; // Base32 encoded
+  readonly counter: number | bigint;
+  readonly digits?: number; // 4–10 recommended
+  readonly algorithm?: HashAlgorithm;
+}
+
+// ==================== VERIFY RESULT ====================
+
+export interface VerifyResult {
+  valid: boolean;
+  delta?: number;
+}

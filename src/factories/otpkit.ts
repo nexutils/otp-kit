@@ -1,16 +1,20 @@
 import { RandomOtpAlgorithm } from "../algorithms/random.algorithm";
-import { RandomOtpOptions, OtpAlgorithm } from "../algorithms/base.algorithm";
+import { HotpOtpAlgorithm } from "../algorithms/hotp.algorithm";
+import { OtpAlgorithm, RandomOtpOptions, HotpOptions } from "../algorithms/base.algorithm";
 
-export type OtpType = "random";
+export type OtpType = "random" | "hotp";
 
 export default class OtpKit {
-   static create(type: OtpType, options?: RandomOtpOptions): OtpAlgorithm {
+  static create(type: "random", options: RandomOtpOptions): RandomOtpAlgorithm;
+  static create(type: "hotp", options: HotpOptions): HotpOtpAlgorithm;
+  static create(type: OtpType, options: any): OtpAlgorithm {
     switch (type) {
       case "random":
         return new RandomOtpAlgorithm(options ?? { length: 6, charset: "numeric" });
+      case "hotp":
+        return new HotpOtpAlgorithm(options);
       default:
-        throw new Error("Unknown OTP type");
+        throw new Error(`Unsupported OTP type: ${type}`);
     }
   }
-
 }

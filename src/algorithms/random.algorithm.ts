@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { RandomOtpOptions, OtpAlgorithm } from "./base.algorithm";
+import { RandomOtpOptions, OtpAlgorithm, Charset } from "./base.algorithm";
 import { getChars } from "../utils/getChar";
 
 const DEFAULT_LENGTH = 6;
@@ -69,7 +69,7 @@ export class RandomOtpAlgorithm implements OtpAlgorithm {
    * @returns A randomly generated OTP string.
    */
   generate(): string {
-    const chars = getChars(this.options.charset, this.options.customCharset);
+    const chars = getChars(this.options.charset ?? "numeric" as Charset, this.options.customCharset);
     let otp = "";
     const randomBytes = crypto.randomBytes(
       this.options.length || DEFAULT_LENGTH

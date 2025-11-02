@@ -60,5 +60,8 @@
     "@types/node": "^24.3.0",
     "jest": "^30.1.1",
     "ts-jest": "^29.4.1"
+  },
+  "dependencies": {
+    "base32-decode": "^1.0.0"
   }
 }

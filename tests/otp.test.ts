@@ -1,4 +1,6 @@
 import OtpKit from "../src/factories/otpkit";
+import { HotpOtpAlgorithm, OtpError } from "../src/algorithms/hotp.algorithm";
+import { HashAlgorithm } from "../src/algorithms/base.algorithm";
 
 describe("RandomOtpAlgorithm", () => {
   describe("Valid OTP Generation", () => {
@@ -103,3 +105,107 @@ describe("RandomOtpAlgorithm", () => {
       expect(isValid).toBe(true);
     });
   });
+
+
+// HOTP Tests
+describe("HotpOtpAlgorithm", () => {
+  const validSecret = "JBSWY3DPEHPK3PXP"; // "Hello!" in Base32
+
+  describe("Initialization", () => {
+    it("should throw if secret is missing", () => {
+      expect(() => new HotpOtpAlgorithm({ secret: "", counter: 0 }))
+        .toThrow(OtpError);
+    });
+
+    it("should throw if digits < 4 or > 10", () => {
+      expect(() => new HotpOtpAlgorithm({ secret: validSecret, counter: 1, digits: 3 }))
+        .toThrow("Digits must be between 4 and 10");
+      expect(() => new HotpOtpAlgorithm({ secret: validSecret, counter: 1, digits: 11 }))
+        .toThrow("Digits must be between 4 and 10");
+    });
+
+    it("should throw for invalid Base32 secret", () => {
+      expect(() => new HotpOtpAlgorithm({ secret: "###", counter: 1 }))
+        .toThrow("Invalid Base32 secret encoding");
+    });
+
+    it("should initialize with defaults properly", () => {
+      const hotp = new HotpOtpAlgorithm({ secret: validSecret, counter: 1 });
+      expect(hotp).toBeInstanceOf(HotpOtpAlgorithm);
+    });
+  });
+
+  describe("OTP Generation", () => {
+    it("should generate correct HOTP (RFC 4226 test vector #0)", () => {
+      const secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"; // "12345678901234567890"
+      const hotp = new HotpOtpAlgorithm({
+        secret,
+        counter: 0,
+        digits: 6,
+        algorithm: HashAlgorithm.SHA1,
+      });
+      const otp = hotp.generate(undefined, 0);
+      expect(otp).toBe("755224");
+    });
+
+    it("should generate correct HOTP for counter 1", () => {
+      const secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+      const hotp = new HotpOtpAlgorithm({
+        secret,
+        counter: 1,
+        digits: 6,
+        algorithm: HashAlgorithm.SHA1,
+      });
+      const otp = hotp.generate(undefined, 1);
+      expect(otp).toBe("287082");
+    });
+
+    it("should generate OTP with correct number of digits", () => {
+      const hotp = new HotpOtpAlgorithm({
+        secret: validSecret,
+        counter: 1,
+        digits: 8,
+      });
+      const otp = hotp.generate();
+      expect(otp).toHaveLength(8);
+      expect(/^\d+$/.test(otp)).toBe(true);
+    });
+  });
+
+  describe("OTP Verification", () => {
+    it("should return false when verify() placeholder called", () => {
+      const hotp = new HotpOtpAlgorithm({
+        secret: validSecret,
+        counter: 1,
+      });
+      expect(hotp.verify("123456")).toBe(false);
+    });
+
+    it("should support expected OTP comparison when implemented", () => {
+      const hotp = new HotpOtpAlgorithm({
+        secret: validSecret,
+        counter: 1,
+      });
+      const otp = hotp.generate();
+      const result = hotp.verify(otp, validSecret, { expected: otp });
+      expect(result).toBe(false); // placeholder, change to true after impl
+    });
+  });
+
+  describe("Determinism & Consistency", () => {
+    it("should always generate same OTP for same secret and counter", () => {
+      const hotp1 = new HotpOtpAlgorithm({ secret: validSecret, counter: 5 });
+      const hotp2 = new HotpOtpAlgorithm({ secret: validSecret, counter: 5 });
+      const otp1 = hotp1.generate();
+      const otp2 = hotp2.generate();
+      expect(otp1).toBe(otp2);
+    });
+
+    it("should generate different OTPs for different counters", () => {
+      const hotp = new HotpOtpAlgorithm({ secret: validSecret, counter: 0 });
+      const otp1 = hotp.generate(undefined, 1);
+      const otp2 = hotp.generate(undefined, 2);
+      expect(otp1).not.toBe(otp2);
+    });
+  });
+});
