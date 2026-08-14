@@ -1,6 +1,6 @@
 // ==================== OTP CORE INTERFACE ====================
 
-export interface OtpAlgorithm<ResultType = boolean | number> {
+export interface OtpAlgorithm<ResultType = unknown> {
   generate(secret?: string, movingFactor?: number | bigint): string;
   verify(input: string, secret?: string, opts?: Record<string, unknown>): ResultType;
 }
@@ -38,6 +38,26 @@ export interface HotpOptions {
   readonly counter: number | bigint;
   readonly digits?: number; // 4–10 recommended
   readonly algorithm?: HashAlgorithm;
+}
+
+export interface HotpVerifyOptions {
+  readonly counter?: number | bigint;
+  readonly window?: number;
+}
+
+// ==================== TOTP OPTIONS ====================
+
+export interface TotpOptions {
+  readonly secret: string; // Base32 encoded
+  readonly digits?: number; // 4–10 recommended
+  readonly algorithm?: HashAlgorithm;
+  readonly period?: number; // step in seconds (default 30)
+  readonly epoch?: number; // epoch in ms (default 0)
+}
+
+export interface TotpVerifyOptions {
+  readonly timestamp?: number | bigint;
+  readonly window?: number;
 }
 
 // ==================== VERIFY RESULT ====================

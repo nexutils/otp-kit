@@ -1,5 +1,7 @@
+import { describe, expect, it } from "@jest/globals";
 import OtpKit from "../src/factories/otpkit";
 import { HotpOtpAlgorithm, OtpError } from "../src/algorithms/hotp.algorithm";
+import { TotpOtpAlgorithm } from "../src/algorithms/totp.algorithm";
 
 describe("RandomOtpAlgorithm", () => {
   describe("Valid OTP Generation", () => {
@@ -64,7 +66,6 @@ describe("RandomOtpAlgorithm", () => {
       ).toThrow("Custom charset is required when charset is 'custom'");
     });
   });
-});
 
   describe("Randomness Checks", () => {
     it("should generate different OTPs on consecutive calls", () => {
@@ -93,7 +94,7 @@ describe("RandomOtpAlgorithm", () => {
     it("should return false if OTP is expired", () => {
       const otpGenerator = OtpKit.create("random", { length: 6, charset: "numeric" });
       const otp = otpGenerator.generate();
-      const isValid = otpGenerator.verify(otp, otp, { expiresAt: Date.now() - 1000 }); // expired
+      const isValid = otpGenerator.verify(otp, otp, { expiresAt: Date.now() - 1000 });
       expect(isValid).toBe(false);
     });
 
@@ -104,6 +105,14 @@ describe("RandomOtpAlgorithm", () => {
       expect(isValid).toBe(true);
     });
   });
+
+  describe("Factory", () => {
+    it("should create TOTP algorithm via factory", () => {
+      const totp = OtpKit.create("totp", { secret: "JBSWY3DPEHPK3PXP" });
+      expect(totp).toBeInstanceOf(TotpOtpAlgorithm);
+    });
+  });
+});
 
 
 // HOTP Tests
@@ -172,22 +181,44 @@ describe("HotpOtpAlgorithm", () => {
   });
 
   describe("OTP Verification", () => {
-    it("should return false when verify() placeholder called", () => {
+    it("should verify valid OTP for exact counter", () => {
       const hotp = new HotpOtpAlgorithm({
         secret: validSecret,
         counter: 1,
       });
-      expect(hotp.verify("123456")).toBe(false);
+      const otp = hotp.generate(undefined, 1);
+      const result = hotp.verify(otp, undefined, { counter: 1 });
+      expect(result.valid).toBe(true);
+      expect(result.delta).toBe(0);
     });
 
-    it("should support expected OTP comparison when implemented", () => {
+    it("should return invalid for wrong OTP", () => {
       const hotp = new HotpOtpAlgorithm({
         secret: validSecret,
         counter: 1,
       });
-      const otp = hotp.generate();
-      const result = hotp.verify(otp, validSecret, { expected: otp });
-      expect(result).toBe(false); // placeholder, change to true after impl
+      const result = hotp.verify("123456", undefined, { counter: 1 });
+      expect(result.valid).toBe(false);
+    });
+
+    it("should verify within counter window", () => {
+      const hotp = new HotpOtpAlgorithm({
+        secret: validSecret,
+        counter: 1,
+      });
+      const otpAtCounter3 = hotp.generate(undefined, 3);
+      const result = hotp.verify(otpAtCounter3, undefined, { counter: 1, window: 5 });
+      expect(result.valid).toBe(true);
+      expect(result.delta).toBe(2);
+    });
+
+    it("should throw for invalid window value", () => {
+      const hotp = new HotpOtpAlgorithm({
+        secret: validSecret,
+        counter: 1,
+      });
+      expect(() => hotp.verify("123456", undefined, { window: -1 }))
+        .toThrow("Window must be a non-negative integer");
     });
   });
 
@@ -206,5 +237,102 @@ describe("HotpOtpAlgorithm", () => {
       const otp2 = hotp.generate(undefined, 2);
       expect(otp1).not.toBe(otp2);
     });
+  });
+});
+
+describe("TotpOtpAlgorithm", () => {
+  const rfcSecretSha1 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+
+  it("should initialize with defaults", () => {
+    const totp = new TotpOtpAlgorithm({ secret: rfcSecretSha1 });
+    expect(totp).toBeInstanceOf(TotpOtpAlgorithm);
+  });
+
+  it("should throw for invalid period", () => {
+    expect(() => new TotpOtpAlgorithm({ secret: rfcSecretSha1, period: 0 }))
+      .toThrow("Period must be a positive integer");
+  });
+
+  it("should throw for invalid epoch", () => {
+    expect(() => new TotpOtpAlgorithm({ secret: rfcSecretSha1, epoch: -1 }))
+      .toThrow("Epoch must be a non-negative integer");
+  });
+
+  it("should match RFC 6238 SHA-1 test vectors", () => {
+    const totp = new TotpOtpAlgorithm({
+      secret: rfcSecretSha1,
+      digits: 8,
+      algorithm: "SHA-1",
+      period: 30,
+      epoch: 0,
+    });
+
+    const vectors = [
+      { timestampSec: 59, otp: "94287082" },
+      { timestampSec: 1111111109, otp: "07081804" },
+      { timestampSec: 1111111111, otp: "14050471" },
+      { timestampSec: 1234567890, otp: "89005924" },
+      { timestampSec: 2000000000, otp: "69279037" },
+      { timestampSec: 20000000000, otp: "65353130" },
+    ];
+
+    for (const vector of vectors) {
+      expect(totp.generate(undefined, vector.timestampSec * 1000)).toBe(vector.otp);
+    }
+  });
+
+  it("should verify valid OTP at exact time step", () => {
+    const totp = new TotpOtpAlgorithm({
+      secret: rfcSecretSha1,
+      digits: 8,
+      algorithm: "SHA-1",
+    });
+
+    const timestamp = 1111111111000;
+    const otp = totp.generate(undefined, timestamp);
+    const result = totp.verify(otp, undefined, { timestamp });
+    expect(result.valid).toBe(true);
+    expect(result.delta).toBe(0);
+  });
+
+  it("should verify OTP within time window", () => {
+    const totp = new TotpOtpAlgorithm({
+      secret: rfcSecretSha1,
+      digits: 8,
+      algorithm: "SHA-1",
+      period: 30,
+    });
+
+    const serverTime = 1234567890000;
+    const clientDriftedTime = serverTime + 30000;
+    const otp = totp.generate(undefined, clientDriftedTime);
+
+    const result = totp.verify(otp, undefined, {
+      timestamp: serverTime,
+      window: 1,
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.delta).toBe(1);
+  });
+
+  it("should reject invalid OTP", () => {
+    const totp = new TotpOtpAlgorithm({ secret: rfcSecretSha1, digits: 8 });
+    const result = totp.verify("00000000", undefined, {
+      timestamp: 1234567890000,
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it("should throw for negative window", () => {
+    const totp = new TotpOtpAlgorithm({ secret: rfcSecretSha1 });
+    expect(() => totp.verify("123456", undefined, { window: -1 }))
+      .toThrow("Window must be a non-negative integer");
+  });
+
+  it("should throw when timestamp is earlier than epoch", () => {
+    const totp = new TotpOtpAlgorithm({ secret: rfcSecretSha1, epoch: 1000 });
+    expect(() => totp.generate(undefined, 500))
+      .toThrow(OtpError);
   });
 });

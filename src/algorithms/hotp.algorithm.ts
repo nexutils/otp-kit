@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import base32Decode from "base32-decode";
-import { HotpOptions, OtpAlgorithm } from "./base.algorithm";
+import { HotpOptions, HotpVerifyOptions, OtpAlgorithm, VerifyResult } from "./base.algorithm";
 
 /**
  * Custom error class for OTP-related exceptions.
@@ -25,7 +25,7 @@ export class OtpError extends Error {
  *
  * Best suited for event/counter-based authentication systems (e.g., hardware tokens).
  */
-export class HotpOtpAlgorithm implements OtpAlgorithm {
+export class HotpOtpAlgorithm implements OtpAlgorithm<VerifyResult> {
   private readonly digits: number;
   private readonly algorithm: string;
   private readonly secretKey: Buffer;
@@ -56,7 +56,10 @@ export class HotpOtpAlgorithm implements OtpAlgorithm {
     this.counter = BigInt(opts.counter);
 
     try {
-      this.secretKey = Buffer.from(base32Decode(opts.secret, "RFC4648"));
+      this.secretKey = Buffer.from(base32Decode(normalizeBase32Secret(opts.secret), "RFC4648"));
+      if (this.secretKey.length === 0) {
+        throw new OtpError("Invalid Base32 secret encoding");
+      }
     } catch {
       throw new OtpError("Invalid Base32 secret encoding");
     }
@@ -94,13 +97,44 @@ export class HotpOtpAlgorithm implements OtpAlgorithm {
     return binary.toString().padStart(this.digits, "0");
   }
 
-  verify(input: string, secret?: string, opts?: { expected?: string }): boolean {
-    // if (!opts?.expected) return false;
-    // try {
-    //   return crypto.timingSafeEqual(Buffer.from(input), Buffer.from(opts.expected));
-    // } catch {
-    //   return false;
-    // }
-    return false; // Placeholder implementation
+  verify(input: string, secret?: string, opts?: HotpVerifyOptions): VerifyResult {
+    if (!input || !/^\d+$/.test(input)) {
+      return { valid: false };
+    }
+
+    const normalizedInput = input.trim();
+    if (normalizedInput.length !== this.digits) {
+      return { valid: false };
+    }
+
+    const baseCounter = BigInt(opts?.counter ?? this.counter);
+    const window = opts?.window ?? 0;
+
+    if (!Number.isInteger(window) || window < 0) {
+      throw new OtpError("Window must be a non-negative integer");
+    }
+
+    for (let delta = 0; delta <= window; delta++) {
+      const currentCounter = baseCounter + BigInt(delta);
+      const expected = this.generate(undefined, currentCounter);
+
+      if (safeEqualDigits(normalizedInput, expected)) {
+        return { valid: true, delta };
+      }
+    }
+
+    return { valid: false };
   }
+}
+
+function normalizeBase32Secret(secret: string): string {
+  return secret.replace(/[\s-]+/g, "").replace(/=+$/g, "").toUpperCase();
+}
+
+function safeEqualDigits(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 }
