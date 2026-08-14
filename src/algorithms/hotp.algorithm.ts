@@ -25,6 +25,8 @@ export class OtpError extends Error {
  *
  * Best suited for event/counter-based authentication systems (e.g., hardware tokens).
  */
+const MAX_WINDOW = 10;
+
 export class HotpOtpAlgorithm implements OtpAlgorithm<VerifyResult> {
   private readonly digits: number;
   private readonly algorithm: string;
@@ -53,7 +55,7 @@ export class HotpOtpAlgorithm implements OtpAlgorithm<VerifyResult> {
 
     this.digits = opts.digits ?? 6;
     this.algorithm = (opts.algorithm ?? "SHA-1").replace("-", "").toLowerCase();
-    this.counter = BigInt(opts.counter);
+    this.counter = normalizeCounter(opts.counter);
 
     try {
       this.secretKey = Buffer.from(base32Decode(normalizeBase32Secret(opts.secret), "RFC4648"));
@@ -87,8 +89,14 @@ export class HotpOtpAlgorithm implements OtpAlgorithm<VerifyResult> {
    * ```
    */
   generate(secret?: string, movingFactor: number | bigint = this.counter): string {
+    if (secret !== undefined) {
+      throw new OtpError(
+        "Per-call secret override is not supported; construct a new HotpOtpAlgorithm with the desired secret instead."
+      );
+    }
+
     const buf = Buffer.alloc(8);
-    buf.writeBigUInt64BE(BigInt(movingFactor));
+    buf.writeBigUInt64BE(normalizeCounter(movingFactor));
 
     const hmac = crypto.createHmac(this.algorithm, this.secretKey).update(buf).digest();
     const offset = hmac[hmac.length - 1] & 0x0f;
@@ -98,6 +106,12 @@ export class HotpOtpAlgorithm implements OtpAlgorithm<VerifyResult> {
   }
 
   verify(input: string, secret?: string, opts?: HotpVerifyOptions): VerifyResult {
+    if (secret !== undefined) {
+      throw new OtpError(
+        "Per-call secret override is not supported; construct a new HotpOtpAlgorithm with the desired secret instead."
+      );
+    }
+
     if (!input || !/^\d+$/.test(input)) {
       return { valid: false };
     }
@@ -107,11 +121,11 @@ export class HotpOtpAlgorithm implements OtpAlgorithm<VerifyResult> {
       return { valid: false };
     }
 
-    const baseCounter = BigInt(opts?.counter ?? this.counter);
+    const baseCounter = normalizeCounter(opts?.counter ?? this.counter);
     const window = opts?.window ?? 0;
 
-    if (!Number.isInteger(window) || window < 0) {
-      throw new OtpError("Window must be a non-negative integer");
+    if (!Number.isInteger(window) || window < 0 || window > MAX_WINDOW) {
+      throw new OtpError(`Window must be a non-negative integer no greater than ${MAX_WINDOW}`);
     }
 
     for (let delta = 0; delta <= window; delta++) {
@@ -129,6 +143,21 @@ export class HotpOtpAlgorithm implements OtpAlgorithm<VerifyResult> {
 
 function normalizeBase32Secret(secret: string): string {
   return secret.replace(/[\s-]+/g, "").replace(/=+$/g, "").toUpperCase();
+}
+
+function normalizeCounter(value: number | bigint): bigint {
+  if (typeof value === "bigint") {
+    if (value < 0n) {
+      throw new OtpError("Counter must be a non-negative integer");
+    }
+    return value;
+  }
+
+  if (!Number.isInteger(value) || value < 0) {
+    throw new OtpError("Counter must be a non-negative integer");
+  }
+
+  return BigInt(value);
 }
 
 function safeEqualDigits(a: string, b: string): boolean {

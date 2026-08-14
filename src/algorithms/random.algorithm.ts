@@ -70,14 +70,11 @@ export class RandomOtpAlgorithm implements OtpAlgorithm {
    */
   generate(): string {
     const chars = getChars(this.options.charset ?? "numeric" as Charset, this.options.customCharset);
+    const length = this.options.length || DEFAULT_LENGTH;
     let otp = "";
-    const randomBytes = crypto.randomBytes(
-      this.options.length || DEFAULT_LENGTH
-    );
 
-    for (let i = 0; i < randomBytes.length; i++) {
-      const index = randomBytes[i] % chars.length;
-      otp += chars[index];
+    for (let i = 0; i < length; i++) {
+      otp += chars[crypto.randomInt(chars.length)];
     }
     return otp;
   }

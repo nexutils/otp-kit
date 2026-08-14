@@ -4,6 +4,7 @@ import { OtpAlgorithm, TotpOptions, TotpVerifyOptions, VerifyResult } from "./ba
 
 const DEFAULT_PERIOD_SECONDS = 30;
 const DEFAULT_EPOCH_MS = 0;
+const MAX_WINDOW = 10;
 
 // RFC 6238 Time based OTP (TOTP) implementation.
 
@@ -49,12 +50,24 @@ export class TotpOtpAlgorithm implements OtpAlgorithm<VerifyResult> {
   }
 
   generate(secret?: string, movingFactor: number | bigint = Date.now()): string {
+    if (secret !== undefined) {
+      throw new OtpError(
+        "Per-call secret override is not supported; construct a new TotpOtpAlgorithm with the desired secret instead."
+      );
+    }
+
     const timestampMs = normalizeTimestamp(movingFactor);
     const counter = this.counterForTimestamp(timestampMs);
     return this.hotp.generate(undefined, counter);
   }
 
   verify(input: string, secret?: string, opts?: TotpVerifyOptions): VerifyResult {
+    if (secret !== undefined) {
+      throw new OtpError(
+        "Per-call secret override is not supported; construct a new TotpOtpAlgorithm with the desired secret instead."
+      );
+    }
+
     if (!input || !/^\d+$/.test(input.trim())) {
       return { valid: false };
     }
@@ -62,8 +75,8 @@ export class TotpOtpAlgorithm implements OtpAlgorithm<VerifyResult> {
     const timestampMs = normalizeTimestamp(opts?.timestamp ?? Date.now());
     const window = opts?.window ?? 0;
 
-    if (!Number.isInteger(window) || window < 0) {
-      throw new OtpError("Window must be a non-negative integer");
+    if (!Number.isInteger(window) || window < 0 || window > MAX_WINDOW) {
+      throw new OtpError(`Window must be a non-negative integer no greater than ${MAX_WINDOW}`);
     }
 
     const baseCounter = this.counterForTimestamp(timestampMs);

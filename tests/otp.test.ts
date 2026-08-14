@@ -74,6 +74,25 @@ describe("RandomOtpAlgorithm", () => {
       const otp2 = otpGenerator.generate();
       expect(otp1).not.toEqual(otp2);
     });
+
+    it("should distribute digits without modulo bias", () => {
+      const otpGenerator = OtpKit.create("random", { length: 1, charset: "numeric" });
+      const counts: Record<string, number> = {};
+      const samples = 20000;
+
+      for (let i = 0; i < samples; i++) {
+        const digit = otpGenerator.generate();
+        counts[digit] = (counts[digit] ?? 0) + 1;
+      }
+
+      const expected = samples / 10;
+      for (let digit = 0; digit <= 9; digit++) {
+        const count = counts[String(digit)] ?? 0;
+        // Allow generous statistical slack; a biased (modulo) implementation
+        // skews digits 0-5 vs 6-9 well beyond this margin at this sample size.
+        expect(Math.abs(count - expected)).toBeLessThan(expected * 0.15);
+      }
+    });
   });
 
   describe("OTP Verification", () => {
@@ -220,6 +239,41 @@ describe("HotpOtpAlgorithm", () => {
       expect(() => hotp.verify("123456", undefined, { window: -1 }))
         .toThrow("Window must be a non-negative integer");
     });
+
+    it("should throw if window exceeds the maximum allowed", () => {
+      const hotp = new HotpOtpAlgorithm({
+        secret: validSecret,
+        counter: 1,
+      });
+      expect(() => hotp.verify("123456", undefined, { window: 11 }))
+        .toThrow("Window must be a non-negative integer no greater than 10");
+    });
+  });
+
+  describe("Security guards", () => {
+    it("should throw if a per-call secret override is passed to generate", () => {
+      const hotp = new HotpOtpAlgorithm({ secret: validSecret, counter: 1 });
+      expect(() => hotp.generate("SOMEOTHERSECRET"))
+        .toThrow("Per-call secret override is not supported");
+    });
+
+    it("should throw if a per-call secret override is passed to verify", () => {
+      const hotp = new HotpOtpAlgorithm({ secret: validSecret, counter: 1 });
+      expect(() => hotp.verify("123456", "SOMEOTHERSECRET"))
+        .toThrow("Per-call secret override is not supported");
+    });
+
+    it("should throw for a non-integer counter instead of a raw RangeError", () => {
+      expect(() => new HotpOtpAlgorithm({ secret: validSecret, counter: 1.5 }))
+        .toThrow(OtpError);
+      expect(() => new HotpOtpAlgorithm({ secret: validSecret, counter: 1.5 }))
+        .toThrow("Counter must be a non-negative integer");
+    });
+
+    it("should throw for a negative counter", () => {
+      expect(() => new HotpOtpAlgorithm({ secret: validSecret, counter: -1 }))
+        .toThrow("Counter must be a non-negative integer");
+    });
   });
 
   describe("Determinism & Consistency", () => {
@@ -334,5 +388,25 @@ describe("TotpOtpAlgorithm", () => {
     const totp = new TotpOtpAlgorithm({ secret: rfcSecretSha1, epoch: 1000 });
     expect(() => totp.generate(undefined, 500))
       .toThrow(OtpError);
+  });
+
+  it("should throw if window exceeds the maximum allowed", () => {
+    const totp = new TotpOtpAlgorithm({ secret: rfcSecretSha1 });
+    expect(() => totp.verify("123456", undefined, { window: 11 }))
+      .toThrow("Window must be a non-negative integer no greater than 10");
+  });
+
+  describe("Security guards", () => {
+    it("should throw if a per-call secret override is passed to generate", () => {
+      const totp = new TotpOtpAlgorithm({ secret: rfcSecretSha1 });
+      expect(() => totp.generate("SOMEOTHERSECRET"))
+        .toThrow("Per-call secret override is not supported");
+    });
+
+    it("should throw if a per-call secret override is passed to verify", () => {
+      const totp = new TotpOtpAlgorithm({ secret: rfcSecretSha1 });
+      expect(() => totp.verify("123456", "SOMEOTHERSECRET"))
+        .toThrow("Per-call secret override is not supported");
+    });
   });
 });
